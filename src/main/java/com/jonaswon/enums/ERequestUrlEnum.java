@@ -10,7 +10,22 @@ public enum ERequestUrlEnum {
     /**
      * 地区（住宅、办公、商业、其它）的销售详情api
      */
-    DETAIL("地区楼盘销售情况详情", "http://120.33.31.10:2019/qzjsj_web2/qxDetail/list.do", EDetailParamEnum.values());
+    DETAIL("地区楼盘销售情况详情", "http://120.33.31.10:2019/qzjsj_web2/qxDetail/list.do", EDetailParamEnum.values()),
+
+    /**
+     * 预售许可api
+     */
+    PRE_SALE_PERMIT("预售许可", "http://120.33.31.10:2019/qzjsj_web2/presalePermit/list.do", EPreSalePermitParamEnum.values()),
+
+    /**
+     * 预售许可详情api
+     */
+    PRE_SALE_PERMIT_DETAIL("预售许可详情", "http://120.33.31.10:2019/qzjsj_web2/presalePermit/list_detail.do", EPreSalePermitDetailParamEnum.values()),
+
+    /**
+     * 预售许可详情楼幢列表api
+     */
+    PRE_SALE_PERMIT_HOUSE("预售许可详情楼幢列表", "http://120.33.31.10:2019/qzjsj_web2/zsBuidings/list_lpxx_permitno.do", EPreSalePermitDetailParamEnum.values());
 
     private String name;
     private String url;

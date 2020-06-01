@@ -7,6 +7,7 @@ import com.jonaswon.enums.ERequestUrlEnum;
 import com.jonaswon.enums.EUseTypeEnum;
 import com.jonaswon.utils.CompareUtils;
 import com.jonaswon.utils.JsonContentUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
@@ -25,32 +26,56 @@ public class SaleService {
     private static Logger logger = Logger.getLogger(SaleService.class.getName()); // 日志打印类
 
     /**
-     * 解析数据
+     * 解析预售许可数据
+     * @param excelFolder   excel保存的文件夹路径
+     * @throws IOException
+     */
+    public static void parsePreSale(String excelFolder) throws IOException {
+        // 默认通用的解析
+        List<Map<String, Object>> dataList = commonParse(excelFolder, ERequestUrlEnum.PRE_SALE_PERMIT, null, "");
+
+        if (null != dataList && !dataList.isEmpty()) {
+            String presaleNo = "";
+            String itemName = "";
+            int i = 0;
+            for (Map<String, Object> dataMap : dataList) {
+                presaleNo = (String)dataMap.get("presaleNo_AES");
+                itemName = (String)dataMap.get("itemname");
+                if (itemName.contains("(")) {
+                    itemName = itemName.substring(0, itemName.indexOf("("));
+                }
+                itemName = (++i) + "、" + itemName;
+                parsePreSaleDetail(excelFolder, presaleNo, itemName);
+            }
+        }
+    }
+
+    /**
+     * 解析预售许可详细数据
+     * @param excelFolder   excel保存的文件夹路径
+     * @throws IOException
+     */
+    public static void parsePreSaleDetail(String excelFolder, String presaleNo, String itemName) throws IOException {
+        Map<String, String> areaListDefineMapVal = new HashMap<>();
+        areaListDefineMapVal.put("presaleNo", presaleNo);
+        // 默认通用的解析
+        commonParse(excelFolder, ERequestUrlEnum.PRE_SALE_PERMIT_DETAIL, areaListDefineMapVal, "-" + itemName);
+    }
+
+
+    /**
+     * 解析地区楼盘数据
      * @param jsonFileName  json文件名称
      * @param excelFolder   excel保存的文件夹路径
      * @throws IOException
      */
-    public static void parse(String jsonFileName, String excelFolder) throws IOException {
+    public static void parseAreaSales(String jsonFileName, String excelFolder) throws IOException {
 
         // 从文件中读取json数据
         //String content = JsonFileUtils.getContent(jsonFileName);
 
-        // 生成xlsx的Excel
-        Workbook workbook = new SXSSFWorkbook();
-
-        // 如需生成xls的Excel，请使用下面的工作簿对象，注意后续输出时文件后缀名也需更改为xls
-        //Workbook workbook = new HSSFWorkbook();
-
-        // 1、地区列表
-        Map<String, String> areaListCompareMap = new LinkedHashMap<>();
-        // 查询字段修改，无则使用默认的
-        Map<String, String> areaListDefineMapVal = null;
-        // 请求url获取数据，并写入到工作簿对象内
-        List<Map<String, Object>> areaList = getData(workbook, ERequestUrlEnum.AREA_LIST,
-                areaListCompareMap, areaListDefineMapVal, "地区列表");
-
-        // 保存到excel文件中并存储到硬盘中
-        ExcelWriter.flushToExcel(workbook, excelFolder + "\\地区列表.xlsx");
+        // 默认通用的解析
+        List<Map<String, Object>> areaList = commonParse(excelFolder, ERequestUrlEnum.AREA_LIST, null, "");
 
         // 2、详情
         if (null != areaList && !areaList.isEmpty()) {
@@ -103,6 +128,30 @@ public class SaleService {
     }
 
     /**
+     * 默认通用的解析
+     * @param excelFolder
+     * @param requestUrlEnum
+     * @param areaListDefineMapVal 查询字段修改，无则使用默认的
+     * @throws IOException
+     */
+    public static List<Map<String, Object>> commonParse(String excelFolder, ERequestUrlEnum requestUrlEnum, Map<String, String> areaListDefineMapVal, String otherName) throws IOException {
+        // 生成xlsx的Excel
+        Workbook workbook = new SXSSFWorkbook();
+
+        // 1、地区列表
+        Map<String, String> areaListCompareMap = new LinkedHashMap<>();
+        String name = requestUrlEnum.getName() + otherName;
+        // 请求url获取数据，并写入到工作簿对象内
+        List<Map<String, Object>> areaList = getData(workbook, requestUrlEnum,
+                areaListCompareMap, areaListDefineMapVal, name);
+
+        // 保存到excel文件中并存储到硬盘中
+        ExcelWriter.flushToExcel(workbook, excelFolder + "\\" + name + ".xlsx");
+
+        return areaList;
+    }
+
+    /**
      * 请求url获取数据，并写入到工作簿对象内
      * @param workbook          工作簿对象
      * @param requestUrlEnum    请求地址
@@ -118,6 +167,13 @@ public class SaleService {
                                                      String sheetName) throws IOException {
         // 通过okhttp请求晋江住建局接口地址，获取返回的内容
         String str = JsonContentUtils.getContentByOkHttp(requestUrlEnum, defineMapVal);
+
+        String temp = "---" + requestUrlEnum.getName() + "---" + sheetName + "---" + (null != defineMapVal ? defineMapVal.toString() : "") + "返回的数据";
+        if (StringUtils.isEmpty(str)) {
+            logger.info("11" + temp + "为空");
+            return null;
+        }
+        logger.info("22" + temp + "不为空");
         // 对返回的内容进行解析
         JSONObject json = JSONObject.parseObject(str);
         String arr = json.get(ParseConstants.JSON_KEY).toString();
